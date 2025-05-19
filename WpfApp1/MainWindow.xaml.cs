@@ -238,29 +238,15 @@ namespace WpfDocCompiler
 
         private void Compile_Click(object sender, RoutedEventArgs e)
         {
-            // Get the editorial content first
-            string editorialContent = GetEditorialContent();
-            if (editorialContent == null)
+            if (SelectedFiles.Count == 0)
             {
-                UpdateStatus("Compilação cancelada - sem Editorial");
+                UpdateStatus("Nenhum ficheiro para compilar");
                 return;
             }
 
-            // Gather articles from the user
-            var articles = GetArticlesFromUser();
-            if (articles == null || articles.Count == 0)
-            {
-                UpdateStatus("Nenhum artigo selecionado.");
-                return;
-            }
-
-            // Create the author list
-            var authors = CreateAuthorList(articles);
-
-            // Proceed to create the document
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                Filter = "Word File (*.docx)|*.docx",
+                Filter = "Word File (*.docx)|*.docx|JSON File (*.json)|*.json",
                 Title = "Save Compiled File"
             };
 
@@ -268,7 +254,47 @@ namespace WpfDocCompiler
             {
                 try
                 {
-                    CreateDocumentWithEditorialAndArticles(saveFileDialog.FileName, editorialContent, authors, articles);
+                    string extension = Path.GetExtension(saveFileDialog.FileName).ToLower();
+
+                    // Get Editorial content
+                    string editorialContent = GetEditorialContent();
+                    if (editorialContent == null)
+                    {
+                        MessageBoxResult mbr = MessageBox.Show(
+                            "Continuar sem Editorial?",
+                            "Editorial não foi preenchido",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+
+                        if (mbr == MessageBoxResult.No)
+                        {
+                            UpdateStatus("Compilação cancelada - sem Editorial");
+                            return;
+                        }
+                        // If user wants to continue without editorial, set it to empty
+                        editorialContent = "";
+                    }
+
+                    if (extension == ".json")
+                    {
+                        // Extract and save as JSON
+                        var allData = ExtractDataFromDocs(SelectedFiles.ToList());
+                        File.WriteAllText(saveFileDialog.FileName, JsonConvert.SerializeObject(allData, Formatting.Indented));
+                        UpdateStatus($"Compilação JSON concluída com {SelectedFiles.Count} artigos");
+                    }
+                    else if (extension == ".docx")
+                    {
+                        // Create a new Word document with editorial and articles
+                        CreateDocumentWithEditorialAndArticles(saveFileDialog.FileName, editorialContent, SelectedFiles);
+                        UpdateStatus($"Compilação DOCX concluída com {SelectedFiles.Count} artigos");
+                    }
+                    else // .txt
+                    {
+                        // Compile as plain text
+                        CompileAsText(SelectedFiles.ToList(), saveFileDialog.FileName);
+                        UpdateStatus($"Compilação TXT concluída com {SelectedFiles.Count} ficheiros");
+                    }
+
                     MessageBox.Show($"Ficheiro guardado em: {saveFileDialog.FileName}", "Sucesso",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -280,20 +306,55 @@ namespace WpfDocCompiler
                 }
             }
         }
-        private List<string> GetArticlesFromUser()
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog
-            {
-                Filter = "Word Files (*.docx)|*.docx|Text Files (*.txt)|*.txt|All Files (*.*)|*.*",
-                Multiselect = true
-            };
 
-            if (openFileDialog.ShowDialog() == true)
-            {
-                return openFileDialog.FileNames.ToList();
-            }
-            return null;
+        private void AddEditorialPage(Body body, string editorialContent)
+        {
+            // "Editorial" header paragraph
+            Paragraph titleParagraph = new Paragraph(new Run(new Text("Editorial")));
+            body.AppendChild(titleParagraph);
+
+            // Add the editorial content
+            Paragraph contentParagraph = new Paragraph(new Run(new Text(editorialContent)));
+            body.AppendChild(contentParagraph);
         }
+
+        private void CreateDocumentWithEditorialAndArticles(string outputPath, string editorialContent, List<string> articles)
+        {
+            using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
+            {
+                MainDocumentPart mainPart = wordDoc.AddMainDocumentPart();
+                mainPart.Document = new Document(new Body());
+                Body body = mainPart.Document.Body;
+
+                // Add Editorial
+                if (!string.IsNullOrWhiteSpace(editorialContent))
+                {
+                    AddEditorialPage(body, editorialContent);
+                    body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page }))); // Page break after editorial
+                }
+
+                // Add Articles
+                foreach (var article in articles)
+                {
+                    if (File.Exists(article))
+                    {
+                        // Add file name header
+                        Paragraph fileNamePara = new Paragraph(new Run(new Text($"File: {Path.GetFileName(article)}")));
+                        body.AppendChild(fileNamePara);
+
+                        string content = ExtractTextFromWord(article);
+                        Paragraph contentPara = new Paragraph(new Run(new Text(content)));
+                        body.AppendChild(contentPara);
+
+                        // Add page break after each article
+                        body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+                    }
+                }
+
+                mainPart.Document.Save();
+            }
+        }
+
         private List<Author> CreateAuthorList(List<string> articles)
         {
             var authors = new List<Author>();
