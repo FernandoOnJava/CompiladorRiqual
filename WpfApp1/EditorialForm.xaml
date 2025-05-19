@@ -11,5 +11,5 @@
         <Button Name="btnMoveDown" Content="Mover para Baixo" Click="MoveDown_Click" />
         <Button Name="btnCompile" Content="Compilar" FontWeight="Bold" Click="Compile_Click" />
         <Button Name="btnUploadDocx" Content="Upload DOCX" Click="UploadDocx_Click" />
-    </StackPanel>
+    </StackPanel>                       
 </Window>

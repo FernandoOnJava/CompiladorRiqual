@@ -238,113 +238,37 @@ namespace WpfDocCompiler
 
         private void Compile_Click(object sender, RoutedEventArgs e)
         {
-            if (SelectedFiles.Count == 0)
+            // Get the editorial content first
+            string editorialContent = GetEditorialContent();
+            if (editorialContent == null)
             {
-                UpdateStatus("Nenhum ficheiro para compilar");
+                UpdateStatus("Compilação cancelada - sem Editorial");
                 return;
             }
 
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-
-            // Determine if we have Word files or just text files
-            bool hasWordFiles = SelectedFiles.Any(f => Path.GetExtension(f).Equals(".docx", StringComparison.OrdinalIgnoreCase));
-
-            if (hasWordFiles)
+            // Gather articles from the user
+            var articles = GetArticlesFromUser();
+            if (articles == null || articles.Count == 0)
             {
-                saveFileDialog.Filter = "Word File (*.docx)|*.docx|JSON File (*.json)|*.json";
-                saveFileDialog.FilterIndex = 1;
-            }
-            else
-            {
-                saveFileDialog.Filter = "Text File (*.txt)|*.txt|Word File (*.docx)|*.docx";
-                saveFileDialog.FilterIndex = 1;
+                UpdateStatus("Nenhum artigo selecionado.");
+                return;
             }
 
-            saveFileDialog.Title = "Save Compiled File";
+            // Create the author list
+            var authors = CreateAuthorList(articles);
+
+            // Proceed to create the document
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Word File (*.docx)|*.docx",
+                Title = "Save Compiled File"
+            };
 
             if (saveFileDialog.ShowDialog() == true)
             {
                 try
                 {
-                    string extension = Path.GetExtension(saveFileDialog.FileName).ToLower();
-
-                    // Count authors (for status update)
-                    int authorCount = 0;
-                    if (hasWordFiles)
-                    {
-                        var allAuthors = new List<Author>();
-                        foreach (string file in SelectedFiles)
-                        {
-                            if (Path.GetExtension(file).Equals(".docx", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var docData = ExtractAuthorData(file);
-                                allAuthors.AddRange(docData.Authors);
-                            }
-                        }
-                        // Count unique authors by email or name
-                        var uniqueEmails = new HashSet<string>(allAuthors.Where(a => !string.IsNullOrEmpty(a.Email)).Select(a => a.Email));
-                        var authorsWithoutEmail = allAuthors.Where(a => string.IsNullOrEmpty(a.Email) && !string.IsNullOrEmpty(a.Nome));
-                        var uniqueNames = new HashSet<string>(authorsWithoutEmail.Select(a => a.Nome));
-                        authorCount = uniqueEmails.Count + uniqueNames.Count;
-                    }
-
-                    // Get Editorial content if outputting to DOCX - moved before actual compilation starts
-                    string editorialContent = null;
-                    if (extension == ".docx")
-                    {
-                        // Use our helper method to get editorial content
-                        editorialContent = GetEditorialContent();
-
-                        // If user canceled the editorial form and we need editorial content,
-                        // ask if they want to continue without it
-                        if (editorialContent == null)
-                        {
-                            MessageBoxResult mbr = MessageBox.Show(
-                                "Continuar sem Editorial?",
-                                "Editorial não foi preenchido",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Question);
-
-                            if (mbr == MessageBoxResult.No)
-                            {
-                                UpdateStatus("Compilação cancelada - sem Editorial");
-                                return;
-                            }
-                            // Empty string for editorial content if user wants to continue
-                            editorialContent = "";
-                        }
-                    }
-
-                    if (extension == ".json")
-                    {
-                        // Extract and save as JSON
-                        var allData = ExtractDataFromDocs(SelectedFiles.ToList());
-                        File.WriteAllText(saveFileDialog.FileName, JsonConvert.SerializeObject(allData, Formatting.Indented));
-                        UpdateStatus($"Compilação JSON concluída com {SelectedFiles.Count} artigos e {authorCount} autores");
-                    }
-                    else if (extension == ".docx")
-                    {
-                        // Check if all files are .docx or mix
-                        if (SelectedFiles.All(f => Path.GetExtension(f).Equals(".docx", StringComparison.OrdinalIgnoreCase)))
-                        {
-                            // Merge Word documents
-                            MergeWordDocuments(SelectedFiles.ToList(), saveFileDialog.FileName, editorialContent);
-                            UpdateStatus($"Compilação DOCX concluída com {SelectedFiles.Count} artigos e {authorCount} autores");
-                        }
-                        else
-                        {
-                            // Create a new Word document with text content
-                            CreateWordFromMixedFiles(SelectedFiles.ToList(), saveFileDialog.FileName, editorialContent);
-                            UpdateStatus($"Compilação DOCX concluída com {SelectedFiles.Count} ficheiros e {authorCount} autores");
-                        }
-                    }
-                    else // .txt
-                    {
-                        // Compile as plain text
-                        CompileAsText(SelectedFiles.ToList(), saveFileDialog.FileName);
-                        UpdateStatus($"Compilação TXT concluída com {SelectedFiles.Count} ficheiros");
-                    }
-
+                    CreateDocumentWithEditorialAndArticles(saveFileDialog.FileName, editorialContent, authors, articles);
                     MessageBox.Show($"Ficheiro guardado em: {saveFileDialog.FileName}", "Sucesso",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -354,6 +278,63 @@ namespace WpfDocCompiler
                     MessageBox.Show("Erro ao compilar ficheiros: " + ex.Message, "Erro",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+        private List<string> GetArticlesFromUser()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Word Files (*.docx)|*.docx|Text Files (*.txt)|*.txt|All Files (*.*)|*.*",
+                Multiselect = true
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                return openFileDialog.FileNames.ToList();
+            }
+            return null;
+        }
+        private List<Author> CreateAuthorList(List<string> articles)
+        {
+            var authors = new List<Author>();
+            foreach (var article in articles)
+            {
+                if (Path.GetExtension(article).Equals(".docx", StringComparison.OrdinalIgnoreCase))
+                {
+                    var docData = ExtractAuthorData(article);
+                    authors.AddRange(docData.Authors);
+                }
+            }
+            return authors.Distinct().ToList(); // Remove duplicates if necessary
+        }
+
+        private void CreateDocumentWithEditorialAndArticles(string outputPath, string editorialContent, List<Author> authors, List<string> articles)
+        {
+            using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
+            {
+                MainDocumentPart mainPart = wordDoc.AddMainDocumentPart();
+                mainPart.Document = new Document(new Body());
+                Body body = mainPart.Document.Body;
+
+                // Add Editorial
+                AddEditorialPage(body, editorialContent);
+
+                // Add Author List
+                AddAuthorsPage(body, authors);
+
+                // Add Articles
+                foreach (var article in articles)
+                {
+                    if (File.Exists(article))
+                    {
+                        string content = ExtractTextFromWord(article);
+                        Paragraph contentParagraph = new Paragraph(new Run(new Text(content)));
+                        body.AppendChild(contentParagraph);
+                        body.AppendChild(new Paragraph(new Run(new Break() { Type = BreakValues.Page }))); // Page break after each article
+                    }
+                }
+
+                mainPart.Document.Save();
             }
         }
 
