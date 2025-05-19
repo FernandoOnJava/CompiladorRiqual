@@ -4,47 +4,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Editorial" Height="500" Width="700" 
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Label -->
-        <TextBlock Grid.Row="0" 
-                   Text="Digite o conteúdo do Editorial:" 
-                   FontWeight="Bold" 
-                   Margin="0,0,0,5"/>
-
-        <!-- TextBox -->
-        <TextBox Grid.Row="1" 
-                 x:Name="editorialTextBox"
-                 AcceptsReturn="True" 
-                 TextWrapping="Wrap" 
-                 VerticalScrollBarVisibility="Auto"
-                 HorizontalScrollBarVisibility="Auto" 
-                 Margin="0,0,0,10"
-                 BorderBrush="Gray"
-                 BorderThickness="1"
-                 Padding="5"
-                 FontFamily="Times New Roman"
-                 FontSize="12"/>
-
-        <!-- Buttons -->
-        <StackPanel Grid.Row="2" 
-                    Orientation="Horizontal" 
-                    HorizontalAlignment="Right">
-            <Button Content="OK" 
-                    Width="80" 
-                    Height="30" 
-                    Margin="0,0,10,0" 
-                    IsDefault="True" 
-                    Click="OkButton_Click"/>
-            <Button Content="Cancelar" 
-                    Width="80" 
-                    Height="30" 
-                    IsCancel="True"/>
-        </StackPanel>
-    </Grid>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
+        <Button Name="btnAddFiles" Content="Adicionar Ficheiro" Click="AddFiles_Click" />
+        <Button Name="btnRemoveFile" Content="Remover Ficheiro" Click="RemoveFile_Click" />
+        <Button Name="btnMoveUp" Content="Mover para Cima" Click="MoveUp_Click" />
+        <Button Name="btnMoveDown" Content="Mover para Baixo" Click="MoveDown_Click" />
+        <Button Name="btnCompile" Content="Compilar" FontWeight="Bold" Click="Compile_Click" />
+        <Button Name="btnUploadDocx" Content="Upload DOCX" Click="UploadDocx_Click" />
+    </StackPanel>
 </Window>
