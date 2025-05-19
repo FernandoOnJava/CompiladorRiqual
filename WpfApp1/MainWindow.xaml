@@ -57,7 +57,7 @@
         <Style TargetType="ListBoxItem">
             <Setter Property="Padding" Value="8" />
             <Setter Property="Margin" Value="2" />
-            <Setter Property="Background" Value="White" />
+            <Setter Property="Background" Value="LightGray" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">

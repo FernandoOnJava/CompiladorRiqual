@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.35906.104 d17.14
+VisualStudioVersion = 17.14.35906.104
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfApp1", "WpfApp1\WpfApp1.csproj", "{62A35D90-2910-43E9-8EE3-D158FC994C23}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "compiladorRiqual", "WpfApp1\compiladorRiqual.csproj", "{62A35D90-2910-43E9-8EE3-D158FC994C23}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

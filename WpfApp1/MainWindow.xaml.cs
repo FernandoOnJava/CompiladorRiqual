@@ -37,6 +37,7 @@ namespace WpfDocCompiler
         }
     }
 
+
     public class FileIconConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -187,6 +188,20 @@ namespace WpfDocCompiler
             }
         }
 
+        // This function shows the editorial form and gets the content
+        private string GetEditorialContent()
+        {
+            // Create a new editorial form
+            EditorialForm editorialForm = new EditorialForm();
+            editorialForm.Owner = this;
+
+            // Show the form as a dialog and wait for user input
+            bool? result = editorialForm.ShowDialog();
+
+            // Return the editorial content if the user clicked OK, otherwise null
+            return result == true ? editorialForm.EditorialContent : null;
+        }
+
         private void MoveUp_Click(object sender, RoutedEventArgs e)
         {
             int selectedIndex = filesListBox.SelectedIndex;
@@ -225,7 +240,7 @@ namespace WpfDocCompiler
         {
             if (SelectedFiles.Count == 0)
             {
-                UpdateStatus("No files to compile");
+                UpdateStatus("Nenhum ficheiro para compilar");
                 return;
             }
 
@@ -253,11 +268,59 @@ namespace WpfDocCompiler
                 {
                     string extension = Path.GetExtension(saveFileDialog.FileName).ToLower();
 
+                    // Count authors (for status update)
+                    int authorCount = 0;
+                    if (hasWordFiles)
+                    {
+                        var allAuthors = new List<Author>();
+                        foreach (string file in SelectedFiles)
+                        {
+                            if (Path.GetExtension(file).Equals(".docx", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var docData = ExtractAuthorData(file);
+                                allAuthors.AddRange(docData.Authors);
+                            }
+                        }
+                        // Count unique authors by email or name
+                        var uniqueEmails = new HashSet<string>(allAuthors.Where(a => !string.IsNullOrEmpty(a.Email)).Select(a => a.Email));
+                        var authorsWithoutEmail = allAuthors.Where(a => string.IsNullOrEmpty(a.Email) && !string.IsNullOrEmpty(a.Nome));
+                        var uniqueNames = new HashSet<string>(authorsWithoutEmail.Select(a => a.Nome));
+                        authorCount = uniqueEmails.Count + uniqueNames.Count;
+                    }
+
+                    // Get Editorial content if outputting to DOCX - moved before actual compilation starts
+                    string editorialContent = null;
+                    if (extension == ".docx")
+                    {
+                        // Use our helper method to get editorial content
+                        editorialContent = GetEditorialContent();
+
+                        // If user canceled the editorial form and we need editorial content,
+                        // ask if they want to continue without it
+                        if (editorialContent == null)
+                        {
+                            MessageBoxResult mbr = MessageBox.Show(
+                                "Continuar sem Editorial?",
+                                "Editorial não foi preenchido",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Question);
+
+                            if (mbr == MessageBoxResult.No)
+                            {
+                                UpdateStatus("Compilação cancelada - sem Editorial");
+                                return;
+                            }
+                            // Empty string for editorial content if user wants to continue
+                            editorialContent = "";
+                        }
+                    }
+
                     if (extension == ".json")
                     {
                         // Extract and save as JSON
                         var allData = ExtractDataFromDocs(SelectedFiles.ToList());
                         File.WriteAllText(saveFileDialog.FileName, JsonConvert.SerializeObject(allData, Formatting.Indented));
+                        UpdateStatus($"Compilação JSON concluída com {SelectedFiles.Count} artigos e {authorCount} autores");
                     }
                     else if (extension == ".docx")
                     {
@@ -265,28 +328,30 @@ namespace WpfDocCompiler
                         if (SelectedFiles.All(f => Path.GetExtension(f).Equals(".docx", StringComparison.OrdinalIgnoreCase)))
                         {
                             // Merge Word documents
-                            MergeWordDocuments(SelectedFiles.ToList(), saveFileDialog.FileName);
+                            MergeWordDocuments(SelectedFiles.ToList(), saveFileDialog.FileName, editorialContent);
+                            UpdateStatus($"Compilação DOCX concluída com {SelectedFiles.Count} artigos e {authorCount} autores");
                         }
                         else
                         {
                             // Create a new Word document with text content
-                            CreateWordFromMixedFiles(SelectedFiles.ToList(), saveFileDialog.FileName);
+                            CreateWordFromMixedFiles(SelectedFiles.ToList(), saveFileDialog.FileName, editorialContent);
+                            UpdateStatus($"Compilação DOCX concluída com {SelectedFiles.Count} ficheiros e {authorCount} autores");
                         }
                     }
                     else // .txt
                     {
                         // Compile as plain text
                         CompileAsText(SelectedFiles.ToList(), saveFileDialog.FileName);
+                        UpdateStatus($"Compilação TXT concluída com {SelectedFiles.Count} ficheiros");
                     }
 
-                    UpdateStatus("Compilation completed successfully");
-                    MessageBox.Show($"File saved at: {saveFileDialog.FileName}", "Success",
+                    MessageBox.Show($"Ficheiro guardado em: {saveFileDialog.FileName}", "Sucesso",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    UpdateStatus("Error in compilation: " + ex.Message);
-                    MessageBox.Show("Error compiling files: " + ex.Message, "Error",
+                    UpdateStatus("Erro na compilação: " + ex.Message);
+                    MessageBox.Show("Erro ao compilar ficheiros: " + ex.Message, "Erro",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -295,7 +360,7 @@ namespace WpfDocCompiler
         private void UpdateStatus(string message)
         {
             statusTextBlock.Text = message;
-        }
+        }   
 
         private void CompileAsText(List<string> files, string outputPath)
         {
@@ -336,7 +401,7 @@ namespace WpfDocCompiler
             return string.Empty;
         }
 
-        private void CreateWordFromMixedFiles(List<string> files, string outputPath)
+        private void CreateWordFromMixedFiles(List<string> files, string outputPath, string editorialContent)
         {
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
             {
@@ -344,6 +409,46 @@ namespace WpfDocCompiler
                 mainPart.Document = new Document(new Body());
                 Body body = mainPart.Document.Body;
 
+                // Extract all authors from documents
+                var allAuthors = new List<Author>();
+                foreach (string file in files)
+                {
+                    if (Path.GetExtension(file).Equals(".docx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var docData = ExtractAuthorData(file);
+                        if (docData.Authors.Count > 0)
+                        {
+                            allAuthors.AddRange(docData.Authors);
+                        }
+                    }
+                }
+
+                // Add authors list page
+                AddAuthorsPage(body, allAuthors);
+
+                // Add page break after authors page
+                Paragraph pageBreakAfterAuthors = new Paragraph(
+                    new Run(
+                        new Break { Type = BreakValues.Page }
+                    )
+                );
+                body.AppendChild(pageBreakAfterAuthors);
+
+                // Add Editorial page if content was provided
+                if (!string.IsNullOrWhiteSpace(editorialContent))
+                {
+                    AddEditorialPage(body, editorialContent);
+
+                    // Add page break after editorial page
+                    Paragraph pageBreakAfterEditorial = new Paragraph(
+                        new Run(
+                            new Break { Type = BreakValues.Page }
+                        )
+                    );
+                    body.AppendChild(pageBreakAfterEditorial);
+                }
+
+                // Now proceed with adding each file as before
                 foreach (string filePath in files)
                 {
                     if (File.Exists(filePath))
@@ -389,9 +494,43 @@ namespace WpfDocCompiler
                     }
                 }
             }
+
+            // Update status with authors count
+            UpdateStatus($"Compilação concluída com {files.Count} ficheiros");
+        }
+        private void AddEditorialPage(Body body, string editorialContent)
+        {
+            // "Editorial" header paragraph - Bold, Aptos Display
+            Paragraph titleParagraph = new Paragraph();
+            Run titleRun = new Run(new Text("Editorial"));
+            RunProperties titleRunProps = new RunProperties(
+                new Bold(),
+                new RunFonts() { Ascii = "Aptos Display", HighAnsi = "Aptos Display" },
+                new FontSize() { Val = "28" }  // 14pt = 28 half-points (slightly larger than author list title)
+            );
+            titleRun.PrependChild(titleRunProps);
+            titleParagraph.AppendChild(titleRun);
+            body.AppendChild(titleParagraph);
+
+            // Add a paragraph with the editorial content
+            Paragraph contentParagraph = new Paragraph();
+            ParagraphProperties pPr = new ParagraphProperties(
+                new SpacingBetweenLines() { After = "0", Before = "240" } // 12pt before (240 twentiethPoints)
+            );
+            contentParagraph.AppendChild(pPr);
+
+            // Editorial content in Times New Roman
+            Run contentRun = new Run(new Text(editorialContent));
+            RunProperties contentRunProps = new RunProperties(
+                new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
+                new FontSize() { Val = "24" }  // 12pt = 24 half-points
+            );
+            contentRun.PrependChild(contentRunProps);
+            contentParagraph.AppendChild(contentRun);
+            body.AppendChild(contentParagraph);
         }
 
-        private void MergeWordDocuments(List<string> sources, string destination)
+        private void MergeWordDocuments(List<string> sources, string destination, string editorialContent)
         {
             if (File.Exists(destination)) File.Delete(destination);
 
@@ -401,6 +540,46 @@ namespace WpfDocCompiler
                 mainPart.Document = new Document(new Body());
                 Body body = mainPart.Document.Body;
 
+                // Extract all authors from documents
+                var allAuthors = new List<Author>();
+                foreach (string source in sources)
+                {
+                    if (Path.GetExtension(source).Equals(".docx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var docData = ExtractAuthorData(source);
+                        if (docData.Authors.Count > 0)
+                        {
+                            allAuthors.AddRange(docData.Authors);
+                        }
+                    }
+                }
+
+                // Add authors list page
+                AddAuthorsPage(body, allAuthors);
+
+                // Add page break after authors page
+                Paragraph pageBreakAfterAuthors = new Paragraph(
+                    new Run(
+                        new Break { Type = BreakValues.Page }
+                    )
+                );
+                body.AppendChild(pageBreakAfterAuthors);
+
+                // Add Editorial page if content was provided
+                if (!string.IsNullOrWhiteSpace(editorialContent))
+                {
+                    AddEditorialPage(body, editorialContent);
+
+                    // Add page break after editorial page
+                    Paragraph pageBreakAfterEditorial = new Paragraph(
+                        new Run(
+                            new Break { Type = BreakValues.Page }
+                        )
+                    );
+                    body.AppendChild(pageBreakAfterEditorial);
+                }
+
+                // Now add all documents
                 int chunkId = 1;
                 foreach (string source in sources)
                 {
@@ -441,6 +620,212 @@ namespace WpfDocCompiler
 
             // Reset page numbering
             ResetPageNumbering(destination);
+
+            // Update status with authors count
+            UpdateStatus($"Compilação concluída com {sources.Count} artigos");
+        }
+
+        private void AddAuthorsPage(Body body, List<Author> authors)
+        {
+            // Remove duplicate authors by email (if available) or by name
+            var uniqueAuthors = new List<Author>();
+            foreach (var author in authors)
+            {
+                if (!string.IsNullOrEmpty(author.Email))
+                {
+                    if (!uniqueAuthors.Any(a => a.Email == author.Email))
+                    {
+                        uniqueAuthors.Add(author);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(author.Nome))
+                {
+                    if (!uniqueAuthors.Any(a => a.Nome == author.Nome))
+                    {
+                        uniqueAuthors.Add(author);
+                    }
+                }
+            }
+
+            // Sort authors by name
+            uniqueAuthors = uniqueAuthors.OrderBy(a => a.Nome).ToList();
+
+            // Document page margins - 2.5cm on all sides
+            SectionProperties sectionProps = new SectionProperties();
+            PageMargin pageMargin = new PageMargin()
+            {
+                Top = 1440, // 2.5cm in twips (1440 twips = 2.54cm)
+                Right = 1440,
+                Bottom = 1440,
+                Left = 1440
+            };
+            sectionProps.AppendChild(pageMargin);
+            body.AppendChild(sectionProps);
+
+            // "Lista de Autores:" header paragraph - Bold, Aptos Display
+            Paragraph titleParagraph = new Paragraph();
+            Run titleRun = new Run(new Text("Lista de Autores:"));
+            RunProperties titleRunProps = new RunProperties(
+                new Bold(),
+                new RunFonts() { Ascii = "Aptos Display", HighAnsi = "Aptos Display" },
+                new FontSize() { Val = "22" }  // 11pt = 22 half-points
+            );
+            titleRun.PrependChild(titleRunProps);
+            titleParagraph.AppendChild(titleRun);
+            body.AppendChild(titleParagraph);
+
+            // No spacer paragraph here anymore - removed the blank line
+
+            // Add each author
+            foreach (var author in uniqueAuthors)
+            {
+                Paragraph authorParagraph = new Paragraph();
+                ParagraphProperties pPr = new ParagraphProperties(
+                    new SpacingBetweenLines() { After = "0" }
+                );
+                authorParagraph.AppendChild(pPr);
+
+                // Author name in bold
+                Run nameRun = new Run(new Text(author.Nome));
+                RunProperties nameRunProps = new RunProperties(
+                    new Bold(),
+                    new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
+                    new FontSize() { Val = "22" }  // 11pt = 22 half-points
+                );
+                nameRun.PrependChild(nameRunProps);
+                authorParagraph.AppendChild(nameRun);
+
+                // Comma with space after it
+                Run commaRun = new Run(new Text(", "));
+                commaRun.PrependChild(new RunProperties(
+                    new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
+                    new FontSize() { Val = "22" }
+                ));
+                authorParagraph.AppendChild(commaRun);
+
+                // Institution without bold
+                Run schoolRun = new Run(new Text(author.Escola));
+                schoolRun.PrependChild(new RunProperties(
+                    new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
+                    new FontSize() { Val = "22" }
+                ));
+                authorParagraph.AppendChild(schoolRun);
+
+                body.AppendChild(authorParagraph);
+            }
+        }
+
+
+        private DocumentData ExtractAuthorData(string file)
+        {
+            var documentData = new DocumentData
+            {
+                FileName = Path.GetFileName(file),
+                Paragraphs = new List<string>(),
+                Authors = new List<Author>()
+            };
+
+            using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(file, false))
+            {
+                if (wordDoc.MainDocumentPart != null && wordDoc.MainDocumentPart.Document.Body != null)
+                {
+                    // Get all paragraphs
+                    var paragraphs = wordDoc.MainDocumentPart.Document.Body.Elements<Paragraph>().ToList();
+
+                    // Find the index of "Abstract" or "Resumo" paragraph
+                    int abstractIndex = -1;
+                    for (int i = 0; i < paragraphs.Count; i++)
+                    {
+                        string text = paragraphs[i].InnerText.Trim().ToLower();
+                        if (text.StartsWith("resumo") || text.StartsWith("abstract"))
+                        {
+                            abstractIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (abstractIndex < 0) abstractIndex = paragraphs.Count;
+
+                    // Find the title (first paragraph)
+                    if (paragraphs.Count > 0)
+                    {
+                        documentData.Paragraphs.Add(paragraphs[0].InnerText.Trim());
+                    }
+
+                    // Extract author information from paragraphs between the title and abstract
+                    if (paragraphs.Count > 1)
+                    {
+                        int startIndex = 1; // Start from second line
+
+                        // Process paragraphs and look for author info pattern
+                        List<Author> authors = ExtractAuthorsFromParagraphs(paragraphs, startIndex, abstractIndex);
+                        documentData.Authors.AddRange(authors);
+                    }
+                }
+            }
+
+            return documentData;
+        }
+
+        private List<Author> ExtractAuthorsFromParagraphs(List<Paragraph> paragraphs, int startIndex, int endIndex)
+        {
+            List<Author> authors = new List<Author>();
+            int currentLine = startIndex;
+
+            while (currentLine < endIndex)
+            {
+                // Need at least 3 lines for an author (name, email, school)
+                if (currentLine + 2 >= endIndex) break;
+
+                string name = paragraphs[currentLine].InnerText.Trim();
+                string email = paragraphs[currentLine + 1].InnerText.Trim();
+                string school = paragraphs[currentLine + 2].InnerText.Trim();
+
+                // Check if we have a valid author pattern
+                if (!string.IsNullOrEmpty(name) &&
+                    !string.IsNullOrEmpty(email) &&
+                    email.Contains("@") &&
+                    !string.IsNullOrEmpty(school))
+                {
+                    Author author = new Author
+                    {
+                        Nome = name,
+                        Email = email,
+                        Escola = school,
+                        Id = ""
+                    };
+
+                    // Check if there's an optional ID line
+                    if (currentLine + 3 < endIndex)
+                    {
+                        string potentialId = paragraphs[currentLine + 3].InnerText.Trim();
+                        // Check if the potential ID line matches ID pattern (e.g., 0009-0003-4042-1897)
+                        if (Regex.IsMatch(potentialId, @"^\d{4}-\d{4}-\d{4}-\d{4}$") ||
+                            Regex.IsMatch(potentialId, @"^\d+-\d+-\d+-\d+$"))
+                        {
+                            author.Id = potentialId;
+                            currentLine += 4; // Move past all 4 lines (name, email, school, id)
+                        }
+                        else
+                        {
+                            currentLine += 3; // Move past 3 lines (name, email, school)
+                        }
+                    }
+                    else
+                    {
+                        currentLine += 3; // Move past 3 lines (no ID)
+                    }
+
+                    authors.Add(author);
+                }
+                else
+                {
+                    // If the pattern doesn't match, move to the next line
+                    currentLine++;
+                }
+            }
+
+            return authors;
         }
 
         private void ResetPageNumbering(string filePath)
