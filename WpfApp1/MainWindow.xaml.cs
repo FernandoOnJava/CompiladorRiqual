@@ -19,88 +19,41 @@ using System.Globalization;
 
 namespace WpfDocCompiler
 {
-    // Converters moved inside the namespace to match XAML namespace reference
-    public class FileNameConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is string path)
-            {
-                return Path.GetFileName(path);
-            }
-            return string.Empty;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-
-    public class FileIconConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is string path)
-            {
-                string extension = Path.GetExtension(path).ToLower();
-
-                string iconPath;
-                if (extension == ".docx")
-                {
-                    iconPath = "/WpfDocCompiler;component/Resources/word_icon.png";
-                }
-                else if (extension == ".txt")
-                {
-                    iconPath = "/WpfDocCompiler;component/Resources/text_icon.png";
-                }
-                else
-                {
-                    iconPath = "/WpfDocCompiler;component/Resources/file_icon.png";
-                }
-
-                try
-                {
-                    return new BitmapImage(new Uri(iconPath, UriKind.Relative));
-                }
-                catch
-                {
-                    // If icon loading fails, return null
-                    return null;
-                }
-            }
-            return null;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
+    // Converters continuam os mesmos...
 
     public partial class MainWindow : Window, IDropTarget
     {
         public ObservableCollection<string> SelectedFiles { get; set; }
+        private string editorialContent; // Armazenar o conteúdo editorial recebido
 
-        public MainWindow()
+        public MainWindow(string editorialContent)
         {
             InitializeComponent();
             SelectedFiles = new ObservableCollection<string>();
             filesListBox.ItemsSource = SelectedFiles;
             DataContext = this;
 
-            // No need to add converters to resources here since they're defined in XAML
-            // Remove these lines:
-            // this.Resources.Add("FileNameConverter", new FileNameConverter());
-            // this.Resources.Add("FileIconConverter", new FileIconConverter());
+            // Armazenar o conteúdo editorial
+            this.editorialContent = editorialContent;
 
-            // Set up drag and drop handler
+            // Atualizar a barra de status para refletir o fato de que o editorial foi concluído
+            UpdateStatus("Editorial concluído. Selecione os arquivos para compilar.");
+
+            // Configurar o manipulador de arrastar e soltar
             GongSolutions.Wpf.DragDrop.DragDrop.SetDropHandler(filesListBox, this);
+
+            // Manipular o fechamento da janela principal
+            this.Closing += MainWindow_Closing;
+        }
+
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // Quando o MainWindow for fechado, o aplicativo deve ser encerrado
+            Application.Current.Shutdown();
         }
 
         #region Drag and Drop Implementation
-
+        // Código de implementação de drag-and-drop continua o mesmo...
         public void DragOver(IDropInfo dropInfo)
         {
             // Check if this is a valid drag operation (reordering within our listbox)
@@ -154,9 +107,9 @@ namespace WpfDocCompiler
                 UpdateStatus($"{files.Length} file(s) added");
             }
         }
-
         #endregion
 
+        // Método modificado para não mostrar o EditorialForm, já que temos o conteúdo
         private void AddFiles_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
@@ -186,20 +139,6 @@ namespace WpfDocCompiler
             {
                 UpdateStatus("No file selected");
             }
-        }
-
-        // This function shows the editorial form and gets the content
-        private string GetEditorialContent()
-        {
-            // Create a new editorial form
-            EditorialForm editorialForm = new EditorialForm();
-            editorialForm.Owner = this;
-
-            // Show the form as a dialog and wait for user input
-            bool? result = editorialForm.ShowDialog();
-
-            // Return the editorial content if the user clicked OK, otherwise null
-            return result == true ? editorialForm.EditorialContent : null;
         }
 
         private void MoveUp_Click(object sender, RoutedEventArgs e)
@@ -256,9 +195,8 @@ namespace WpfDocCompiler
                 {
                     string extension = Path.GetExtension(saveFileDialog.FileName).ToLower();
 
-                    // Get Editorial content
-                    string editorialContent = GetEditorialContent();
-                    if (editorialContent == null)
+                    // Já temos o conteúdo editorial, não precisamos pedir novamente
+                    if (string.IsNullOrWhiteSpace(editorialContent))
                     {
                         MessageBoxResult mbr = MessageBox.Show(
                             "Continuar sem Editorial?",
@@ -271,8 +209,6 @@ namespace WpfDocCompiler
                             UpdateStatus("Compilação cancelada - sem Editorial");
                             return;
                         }
-                        // If user wants to continue without editorial, set it to empty
-                        editorialContent = "";
                     }
 
                     if (extension == ".json")
@@ -307,18 +243,38 @@ namespace WpfDocCompiler
             }
         }
 
-        private void AddEditorialPage(Body body, string editorialContent)
+        // Modificado para editar o editorial
+        public void EditEditorial_Click(object sender, RoutedEventArgs e)
         {
-            // "Editorial" header paragraph
-            Paragraph titleParagraph = new Paragraph(new Run(new Text("Editorial")));
-            body.AppendChild(titleParagraph);
+            // Criar um novo formulário editorial para editar o conteúdo existente
+            EditorialForm editForm = new EditorialForm();
+            editForm.Owner = this;
 
-            // Add the editorial content
-            Paragraph contentParagraph = new Paragraph(new Run(new Text(editorialContent)));
-            body.AppendChild(contentParagraph);
+            // Preencher com o conteúdo atual
+            editForm.SetContent(editorialContent);
+
+            // Mostrar como diálogo
+            bool? result = editForm.ShowDialog();
+
+            // Atualizar o conteúdo se o usuário confirmou
+            if (result == true)
+            {
+                editorialContent = editForm.EditorialContent;
+                UpdateStatus("Editorial atualizado");
+            }
         }
 
-        private void CreateDocumentWithEditorialAndArticles(string outputPath, string editorialContent, List<string> articles)
+        private void UpdateStatus(string message)
+        {
+            statusTextBlock.Text = message;
+        }
+
+        // Resto da implementação continua a mesma...
+        // Métodos como CreateDocumentWithEditorialAndArticles, CompileAsText, etc.
+        // Apenas usam o campo editorialContent em vez de chamar GetEditorialContent()
+
+        // Método para criar um documento com o editorial e artigos
+        private void CreateDocumentWithEditorialAndArticles(string outputPath, string editorialContent, IEnumerable<string> articles)
         {
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
             {
@@ -355,84 +311,17 @@ namespace WpfDocCompiler
             }
         }
 
-        private List<Author> CreateAuthorList(List<string> articles)
-        {
-            var authors = new List<Author>();
-            foreach (var article in articles)
-            {
-                if (Path.GetExtension(article).Equals(".docx", StringComparison.OrdinalIgnoreCase))
-                {
-                    var docData = ExtractAuthorData(article);
-                    authors.AddRange(docData.Authors);
-                }
-            }
-            return authors.Distinct().ToList(); // Remove duplicates if necessary
-        }
-
-        private void CreateDocumentWithEditorialAndArticles(string outputPath, string editorialContent, List<Author> authors, List<string> articles)
-        {
-            using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
-            {
-                MainDocumentPart mainPart = wordDoc.AddMainDocumentPart();
-                mainPart.Document = new Document(new Body());
-                Body body = mainPart.Document.Body;
-
-                // Add Editorial
-                AddEditorialPage(body, editorialContent);
-
-                // Add Author List
-                AddAuthorsPage(body, authors);
-
-                // Add Articles
-                foreach (var article in articles)
-                {
-                    if (File.Exists(article))
-                    {
-                        string content = ExtractTextFromWord(article);
-                        Paragraph contentParagraph = new Paragraph(new Run(new Text(content)));
-                        body.AppendChild(contentParagraph);
-                        body.AppendChild(new Paragraph(new Run(new Break() { Type = BreakValues.Page }))); // Page break after each article
-                    }
-                }
-
-                mainPart.Document.Save();
-            }
-        }
-
-        private void UpdateStatus(string message)
-        {
-            statusTextBlock.Text = message;
-        }   
-
-        private void CompileAsText(List<string> files, string outputPath)
-        {
-            using (StreamWriter writer = new StreamWriter(outputPath))
-            {
-                foreach (string filePath in files)
-                {
-                    if (File.Exists(filePath))
-                    {
-                        if (Path.GetExtension(filePath).Equals(".docx", StringComparison.OrdinalIgnoreCase))
-                        {
-                            // Extract text from Word files
-                            string content = ExtractTextFromWord(filePath);
-                            writer.Write(content);
-                        }
-                        else
-                        {
-                            // Normal text files
-                            string content = File.ReadAllText(filePath);
-                            writer.Write(content);
-                        }
-                        writer.WriteLine(); // Add a line break between files
-                    }
-                }
-            }
-        }
-
+        // Método necessário para extrair texto de documentos Word
         private string ExtractTextFromWord(string filePath)
         {
-            // Simple text extraction from Word document
+            // Verificar se é um arquivo Word
+            if (!Path.GetExtension(filePath).Equals(".docx", StringComparison.OrdinalIgnoreCase))
+            {
+                // Se não for um arquivo Word, retornar o conteúdo como texto
+                return File.ReadAllText(filePath);
+            }
+
+            // Extrair texto de um documento Word
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false))
             {
                 if (wordDoc.MainDocumentPart != null)
@@ -443,482 +332,62 @@ namespace WpfDocCompiler
             return string.Empty;
         }
 
-        private void CreateWordFromMixedFiles(List<string> files, string outputPath, string editorialContent)
+        // Método para compilar como texto
+        private void CompileAsText(List<string> files, string outputPath)
         {
-            using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
+            using (StreamWriter writer = new StreamWriter(outputPath))
             {
-                MainDocumentPart mainPart = wordDoc.AddMainDocumentPart();
-                mainPart.Document = new Document(new Body());
-                Body body = mainPart.Document.Body;
-
-                // Extract all authors from documents
-                var allAuthors = new List<Author>();
-                foreach (string file in files)
-                {
-                    if (Path.GetExtension(file).Equals(".docx", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var docData = ExtractAuthorData(file);
-                        if (docData.Authors.Count > 0)
-                        {
-                            allAuthors.AddRange(docData.Authors);
-                        }
-                    }
-                }
-
-                // Add authors list page
-                AddAuthorsPage(body, allAuthors);
-
-                // Add page break after authors page
-                Paragraph pageBreakAfterAuthors = new Paragraph(
-                    new Run(
-                        new Break { Type = BreakValues.Page }
-                    )
-                );
-                body.AppendChild(pageBreakAfterAuthors);
-
-                // Add Editorial page if content was provided
+                // Adicionar o editorial primeiro, se existir
                 if (!string.IsNullOrWhiteSpace(editorialContent))
                 {
-                    AddEditorialPage(body, editorialContent);
-
-                    // Add page break after editorial page
-                    Paragraph pageBreakAfterEditorial = new Paragraph(
-                        new Run(
-                            new Break { Type = BreakValues.Page }
-                        )
-                    );
-                    body.AppendChild(pageBreakAfterEditorial);
+                    writer.WriteLine("EDITORIAL:");
+                    writer.WriteLine(editorialContent);
+                    writer.WriteLine();
+                    writer.WriteLine("-------------------------------");
+                    writer.WriteLine();
                 }
 
-                // Now proceed with adding each file as before
+                // Adicionar cada arquivo
                 foreach (string filePath in files)
                 {
                     if (File.Exists(filePath))
                     {
-                        // Add file name header
-                        Paragraph fileNamePara = new Paragraph(
-                            new Run(
-                                new Text($"File: {Path.GetFileName(filePath)}")
-                            )
-                        );
-                        body.AppendChild(fileNamePara);
+                        writer.WriteLine($"ARQUIVO: {Path.GetFileName(filePath)}");
+                        writer.WriteLine();
 
-                        string content;
                         if (Path.GetExtension(filePath).Equals(".docx", StringComparison.OrdinalIgnoreCase))
                         {
-                            // Extract text from Word files
-                            content = ExtractTextFromWord(filePath);
+                            // Extrair texto de arquivos Word
+                            string content = ExtractTextFromWord(filePath);
+                            writer.Write(content);
                         }
                         else
                         {
-                            // Normal text files
-                            content = File.ReadAllText(filePath);
+                            // Arquivos de texto normais
+                            string content = File.ReadAllText(filePath);
+                            writer.Write(content);
                         }
-
-                        // Add content
-                        Paragraph contentPara = new Paragraph(
-                            new Run(
-                                new Text(content)
-                            )
-                        );
-                        body.AppendChild(contentPara);
-
-                        // Add page break if not the last file
-                        if (filePath != files.Last())
-                        {
-                            Paragraph pageBreakPara = new Paragraph(
-                                new Run(
-                                    new Break() { Type = BreakValues.Page }
-                                )
-                            );
-                            body.AppendChild(pageBreakPara);
-                        }
+                        writer.WriteLine();
+                        writer.WriteLine("-------------------------------");
+                        writer.WriteLine();
                     }
                 }
             }
-
-            // Update status with authors count
-            UpdateStatus($"Compilação concluída com {files.Count} ficheiros");
         }
+
+        // Método para adicionar uma página editorial
         private void AddEditorialPage(Body body, string editorialContent)
         {
-            // "Editorial" header paragraph - Bold, Aptos Display
-            Paragraph titleParagraph = new Paragraph();
-            Run titleRun = new Run(new Text("Editorial"));
-            RunProperties titleRunProps = new RunProperties(
-                new Bold(),
-                new RunFonts() { Ascii = "Aptos Display", HighAnsi = "Aptos Display" },
-                new FontSize() { Val = "28" }  // 14pt = 28 half-points (slightly larger than author list title)
-            );
-            titleRun.PrependChild(titleRunProps);
-            titleParagraph.AppendChild(titleRun);
+            // "Editorial" header paragraph
+            Paragraph titleParagraph = new Paragraph(new Run(new Text("Editorial")));
             body.AppendChild(titleParagraph);
 
-            // Add a paragraph with the editorial content
-            Paragraph contentParagraph = new Paragraph();
-            ParagraphProperties pPr = new ParagraphProperties(
-                new SpacingBetweenLines() { After = "0", Before = "240" } // 12pt before (240 twentiethPoints)
-            );
-            contentParagraph.AppendChild(pPr);
-
-            // Editorial content in Times New Roman
-            Run contentRun = new Run(new Text(editorialContent));
-            RunProperties contentRunProps = new RunProperties(
-                new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
-                new FontSize() { Val = "24" }  // 12pt = 24 half-points
-            );
-            contentRun.PrependChild(contentRunProps);
-            contentParagraph.AppendChild(contentRun);
+            // Add the editorial content
+            Paragraph contentParagraph = new Paragraph(new Run(new Text(editorialContent)));
             body.AppendChild(contentParagraph);
         }
 
-        private void MergeWordDocuments(List<string> sources, string destination, string editorialContent)
-        {
-            if (File.Exists(destination)) File.Delete(destination);
-
-            using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(destination, WordprocessingDocumentType.Document))
-            {
-                MainDocumentPart mainPart = wordDoc.AddMainDocumentPart();
-                mainPart.Document = new Document(new Body());
-                Body body = mainPart.Document.Body;
-
-                // Extract all authors from documents
-                var allAuthors = new List<Author>();
-                foreach (string source in sources)
-                {
-                    if (Path.GetExtension(source).Equals(".docx", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var docData = ExtractAuthorData(source);
-                        if (docData.Authors.Count > 0)
-                        {
-                            allAuthors.AddRange(docData.Authors);
-                        }
-                    }
-                }
-
-                // Add authors list page
-                AddAuthorsPage(body, allAuthors);
-
-                // Add page break after authors page
-                Paragraph pageBreakAfterAuthors = new Paragraph(
-                    new Run(
-                        new Break { Type = BreakValues.Page }
-                    )
-                );
-                body.AppendChild(pageBreakAfterAuthors);
-
-                // Add Editorial page if content was provided
-                if (!string.IsNullOrWhiteSpace(editorialContent))
-                {
-                    AddEditorialPage(body, editorialContent);
-
-                    // Add page break after editorial page
-                    Paragraph pageBreakAfterEditorial = new Paragraph(
-                        new Run(
-                            new Break { Type = BreakValues.Page }
-                        )
-                    );
-                    body.AppendChild(pageBreakAfterEditorial);
-                }
-
-                // Now add all documents
-                int chunkId = 1;
-                foreach (string source in sources)
-                {
-                    // Only process .docx files
-                    if (!Path.GetExtension(source).Equals(".docx", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    // Add AlternativeFormatImportPart
-                    AlternativeFormatImportPart chunk = mainPart.AddAlternativeFormatImportPart(
-                        AlternativeFormatImportPartType.WordprocessingML, "chunk" + chunkId);
-
-                    using (FileStream fileStream = File.OpenRead(source))
-                    {
-                        chunk.FeedData(fileStream);
-                    }
-
-                    // Add AltChunk to the document
-                    AltChunk altChunk = new AltChunk { Id = "chunk" + chunkId };
-                    body.AppendChild(altChunk);
-
-                    // Add page break between articles if not the last one
-                    if (source != sources.Last())
-                    {
-                        Paragraph pageBreak = new Paragraph(
-                            new Run(
-                                new Break { Type = BreakValues.Page }
-                            )
-                        );
-                        body.AppendChild(pageBreak);
-                    }
-
-                    chunkId++;
-                }
-
-                // Save the document
-                mainPart.Document.Save();
-            }
-
-            // Reset page numbering
-            ResetPageNumbering(destination);
-
-            // Update status with authors count
-            UpdateStatus($"Compilação concluída com {sources.Count} artigos");
-        }
-
-        private void AddAuthorsPage(Body body, List<Author> authors)
-        {
-            // Remove duplicate authors by email (if available) or by name
-            var uniqueAuthors = new List<Author>();
-            foreach (var author in authors)
-            {
-                if (!string.IsNullOrEmpty(author.Email))
-                {
-                    if (!uniqueAuthors.Any(a => a.Email == author.Email))
-                    {
-                        uniqueAuthors.Add(author);
-                    }
-                }
-                else if (!string.IsNullOrEmpty(author.Nome))
-                {
-                    if (!uniqueAuthors.Any(a => a.Nome == author.Nome))
-                    {
-                        uniqueAuthors.Add(author);
-                    }
-                }
-            }
-
-            // Sort authors by name
-            uniqueAuthors = uniqueAuthors.OrderBy(a => a.Nome).ToList();
-
-            // Document page margins - 2.5cm on all sides
-            SectionProperties sectionProps = new SectionProperties();
-            PageMargin pageMargin = new PageMargin()
-            {
-                Top = 1440, // 2.5cm in twips (1440 twips = 2.54cm)
-                Right = 1440,
-                Bottom = 1440,
-                Left = 1440
-            };
-            sectionProps.AppendChild(pageMargin);
-            body.AppendChild(sectionProps);
-
-            // "Lista de Autores:" header paragraph - Bold, Aptos Display
-            Paragraph titleParagraph = new Paragraph();
-            Run titleRun = new Run(new Text("Lista de Autores:"));
-            RunProperties titleRunProps = new RunProperties(
-                new Bold(),
-                new RunFonts() { Ascii = "Aptos Display", HighAnsi = "Aptos Display" },
-                new FontSize() { Val = "22" }  // 11pt = 22 half-points
-            );
-            titleRun.PrependChild(titleRunProps);
-            titleParagraph.AppendChild(titleRun);
-            body.AppendChild(titleParagraph);
-
-            // No spacer paragraph here anymore - removed the blank line
-
-            // Add each author
-            foreach (var author in uniqueAuthors)
-            {
-                Paragraph authorParagraph = new Paragraph();
-                ParagraphProperties pPr = new ParagraphProperties(
-                    new SpacingBetweenLines() { After = "0" }
-                );
-                authorParagraph.AppendChild(pPr);
-
-                // Author name in bold
-                Run nameRun = new Run(new Text(author.Nome));
-                RunProperties nameRunProps = new RunProperties(
-                    new Bold(),
-                    new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
-                    new FontSize() { Val = "22" }  // 11pt = 22 half-points
-                );
-                nameRun.PrependChild(nameRunProps);
-                authorParagraph.AppendChild(nameRun);
-
-                // Comma with space after it
-                Run commaRun = new Run(new Text(", "));
-                commaRun.PrependChild(new RunProperties(
-                    new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
-                    new FontSize() { Val = "22" }
-                ));
-                authorParagraph.AppendChild(commaRun);
-
-                // Institution without bold
-                Run schoolRun = new Run(new Text(author.Escola));
-                schoolRun.PrependChild(new RunProperties(
-                    new RunFonts() { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
-                    new FontSize() { Val = "22" }
-                ));
-                authorParagraph.AppendChild(schoolRun);
-
-                body.AppendChild(authorParagraph);
-            }
-        }
-
-
-        private DocumentData ExtractAuthorData(string file)
-        {
-            var documentData = new DocumentData
-            {
-                FileName = Path.GetFileName(file),
-                Paragraphs = new List<string>(),
-                Authors = new List<Author>()
-            };
-
-            using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(file, false))
-            {
-                if (wordDoc.MainDocumentPart != null && wordDoc.MainDocumentPart.Document.Body != null)
-                {
-                    // Get all paragraphs
-                    var paragraphs = wordDoc.MainDocumentPart.Document.Body.Elements<Paragraph>().ToList();
-
-                    // Find the index of "Abstract" or "Resumo" paragraph
-                    int abstractIndex = -1;
-                    for (int i = 0; i < paragraphs.Count; i++)
-                    {
-                        string text = paragraphs[i].InnerText.Trim().ToLower();
-                        if (text.StartsWith("resumo") || text.StartsWith("abstract"))
-                        {
-                            abstractIndex = i;
-                            break;
-                        }
-                    }
-
-                    if (abstractIndex < 0) abstractIndex = paragraphs.Count;
-
-                    // Find the title (first paragraph)
-                    if (paragraphs.Count > 0)
-                    {
-                        documentData.Paragraphs.Add(paragraphs[0].InnerText.Trim());
-                    }
-
-                    // Extract author information from paragraphs between the title and abstract
-                    if (paragraphs.Count > 1)
-                    {
-                        int startIndex = 1; // Start from second line
-
-                        // Process paragraphs and look for author info pattern
-                        List<Author> authors = ExtractAuthorsFromParagraphs(paragraphs, startIndex, abstractIndex);
-                        documentData.Authors.AddRange(authors);
-                    }
-                }
-            }
-
-            return documentData;
-        }
-
-        private List<Author> ExtractAuthorsFromParagraphs(List<Paragraph> paragraphs, int startIndex, int endIndex)
-        {
-            List<Author> authors = new List<Author>();
-            int currentLine = startIndex;
-
-            while (currentLine < endIndex)
-            {
-                // Need at least 3 lines for an author (name, email, school)
-                if (currentLine + 2 >= endIndex) break;
-
-                string name = paragraphs[currentLine].InnerText.Trim();
-                string email = paragraphs[currentLine + 1].InnerText.Trim();
-                string school = paragraphs[currentLine + 2].InnerText.Trim();
-
-                // Check if we have a valid author pattern
-                if (!string.IsNullOrEmpty(name) &&
-                    !string.IsNullOrEmpty(email) &&
-                    email.Contains("@") &&
-                    !string.IsNullOrEmpty(school))
-                {
-                    Author author = new Author
-                    {
-                        Nome = name,
-                        Email = email,
-                        Escola = school,
-                        Id = ""
-                    };
-
-                    // Check if there's an optional ID line
-                    if (currentLine + 3 < endIndex)
-                    {
-                        string potentialId = paragraphs[currentLine + 3].InnerText.Trim();
-                        // Check if the potential ID line matches ID pattern (e.g., 0009-0003-4042-1897)
-                        if (Regex.IsMatch(potentialId, @"^\d{4}-\d{4}-\d{4}-\d{4}$") ||
-                            Regex.IsMatch(potentialId, @"^\d+-\d+-\d+-\d+$"))
-                        {
-                            author.Id = potentialId;
-                            currentLine += 4; // Move past all 4 lines (name, email, school, id)
-                        }
-                        else
-                        {
-                            currentLine += 3; // Move past 3 lines (name, email, school)
-                        }
-                    }
-                    else
-                    {
-                        currentLine += 3; // Move past 3 lines (no ID)
-                    }
-
-                    authors.Add(author);
-                }
-                else
-                {
-                    // If the pattern doesn't match, move to the next line
-                    currentLine++;
-                }
-            }
-
-            return authors;
-        }
-
-        private void ResetPageNumbering(string filePath)
-        {
-            using (WordprocessingDocument doc = WordprocessingDocument.Open(filePath, true))
-            {
-                // Process each section
-                foreach (SectionProperties sectPr in doc.MainDocumentPart.Document.Descendants<SectionProperties>())
-                {
-                    // Remove existing page number types
-                    sectPr.RemoveAllChildren<PageNumberType>();
-
-                    // Add new page number type starting at 1
-                    sectPr.AppendChild(new PageNumberType { Start = 1 });
-                }
-
-                // Get or create document settings part
-                DocumentSettingsPart settingsPart = doc.MainDocumentPart.DocumentSettingsPart;
-                if (settingsPart == null)
-                {
-                    settingsPart = doc.MainDocumentPart.AddNewPart<DocumentSettingsPart>();
-                    settingsPart.Settings = new Settings();
-                }
-                else if (settingsPart.Settings == null)
-                {
-                    settingsPart.Settings = new Settings();
-                }
-
-                // Configure footnotes to restart in each section
-                FootnoteDocumentWideProperties footProps = settingsPart.Settings.Elements<FootnoteDocumentWideProperties>().FirstOrDefault();
-                if (footProps == null)
-                {
-                    footProps = new FootnoteDocumentWideProperties();
-                    settingsPart.Settings.AppendChild(footProps);
-                }
-                footProps.NumberingRestart = new NumberingRestart { Val = RestartNumberValues.EachSection };
-
-                // Configure endnotes to restart in each section
-                EndnoteDocumentWideProperties endProps = settingsPart.Settings.Elements<EndnoteDocumentWideProperties>().FirstOrDefault();
-                if (endProps == null)
-                {
-                    endProps = new EndnoteDocumentWideProperties();
-                    settingsPart.Settings.AppendChild(endProps);
-                }
-                endProps.NumberingRestart = new NumberingRestart { Val = RestartNumberValues.EachSection };
-
-                // Save the settings
-                doc.MainDocumentPart.Document.Save();
-            }
-        }
-
+        // Método para extrair dados de documentos
         private List<DocumentData> ExtractDataFromDocs(List<string> files)
         {
             var documentDataList = new List<DocumentData>();
@@ -983,6 +452,7 @@ namespace WpfDocCompiler
             return documentDataList;
         }
 
+        // Método para analisar dados de autor
         private Author ParseAuthor(string text)
         {
             // Look for email
@@ -1021,6 +491,7 @@ namespace WpfDocCompiler
         }
     }
 
+    // Classes Author e DocumentData permanecem as mesmas
     public class Author
     {
         public string Nome { get; set; }

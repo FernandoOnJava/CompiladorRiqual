@@ -5,11 +5,11 @@
         Title="Editorial" Height="500" Width="700" 
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-        <Button Name="btnAddFiles" Content="Adicionar Ficheiro" Click="AddFiles_Click" />
-        <Button Name="btnRemoveFile" Content="Remover Ficheiro" Click="RemoveFile_Click" />
-        <Button Name="btnMoveUp" Content="Mover para Cima" Click="MoveUp_Click" />
-        <Button Name="btnMoveDown" Content="Mover para Baixo" Click="MoveDown_Click" />
-        <Button Name="btnCompile" Content="Compilar" FontWeight="Bold" Click="Compile_Click" />
-        <Button Name="btnUploadDocx" Content="Upload DOCX" Click="UploadDocx_Click" />
+        <Button x:Name="btnAddFiles" Content="Adicionar Ficheiro" Click="AddFiles_Click" />
+        <Button x:Name="btnRemoveFile" Content="Remover Ficheiro" Click="RemoveFile_Click" />
+        <Button x:Name="btnMoveUp" Content="Mover para Cima" Click="MoveUp_Click" />
+        <Button x:Name="btnMoveDown" Content="Mover para Baixo" Click="MoveDown_Click" />
+        <Button x:Name="btnCompile" Content="Compilar" FontWeight="Bold" Click="Compile_Click" />
+        <Button x:Name="btnUploadDocx" Content="Upload DOCX" Click="UploadDocx_Click" />
     </StackPanel>                       
 </Window>

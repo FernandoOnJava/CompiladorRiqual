@@ -9,6 +9,7 @@ namespace WpfDocCompiler
     {
         private TextBox editorialTextBox;
         public string EditorialContent { get; private set; }
+        private MainWindow mainWindow;
 
         public EditorialForm()
         {
@@ -16,7 +17,7 @@ namespace WpfDocCompiler
             Width = 700;
             Height = 500;
             Title = "Editorial";
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen; // Alterado para CenterScreen já que agora é o form inicial
             ResizeMode = ResizeMode.CanResize;
 
             // Create a grid layout
@@ -64,11 +65,11 @@ namespace WpfDocCompiler
             };
             Grid.SetRow(buttonPanel, 2);
 
-            // Create OK button
+            // Create OK button - modificado para abrir o MainWindow
             Button okButton = new Button
             {
-                Content = "OK",
-                Width = 80,
+                Content = "Continuar para Seleção de Arquivos",
+                Width = 200,
                 Height = 30,
                 Margin = new Thickness(0, 0, 10, 0),
                 IsDefault = true
@@ -76,23 +77,27 @@ namespace WpfDocCompiler
             okButton.Click += (sender, e) =>
             {
                 EditorialContent = editorialTextBox.Text;
-                DialogResult = true;
-                Close();
+
+                // Abrir o MainWindow e passar o conteúdo editorial
+                mainWindow = new MainWindow(EditorialContent);
+                mainWindow.Show();
+
+                // Esconder este formulário em vez de fechá-lo
+                this.Hide();
             };
             buttonPanel.Children.Add(okButton);
 
-            // Create Cancel button
+            // Create Cancel/Exit button
             Button cancelButton = new Button
             {
-                Content = "Cancelar",
+                Content = "Sair",
                 Width = 80,
                 Height = 30,
                 IsCancel = true
             };
             cancelButton.Click += (sender, e) =>
             {
-                DialogResult = false;
-                Close();
+                Application.Current.Shutdown();
             };
             buttonPanel.Children.Add(cancelButton);
 
@@ -100,6 +105,18 @@ namespace WpfDocCompiler
 
             // Set the content of the window
             Content = mainGrid;
+
+            // Manipular o evento de fechamento da janela
+            this.Closing += EditorialForm_Closing;
+        }
+
+        private void EditorialForm_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // Se o MainWindow nunca foi aberto e o usuário está fechando o formulário, encerrar o aplicativo
+            if (mainWindow == null)
+            {
+                Application.Current.Shutdown();
+            }
         }
 
         // Method to preload editorial content if needed

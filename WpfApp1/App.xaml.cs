@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Windows;
-using System.Windows.Data;
 using System.Globalization;
 using System.IO;
+using System.Windows;
+using System.Windows.Data;
+using WpfDocCompiler;
 
 namespace WpfApp1
 {
@@ -11,5 +12,13 @@ namespace WpfApp1
     /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            // Iniciar com EditorialForm em vez de MainWindow
+            EditorialForm editorialForm = new EditorialForm();
+            editorialForm.Show();
+        }
     }
 }
