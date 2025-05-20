@@ -16,6 +16,8 @@ using DocumentFormat.OpenXml;
 using GongSolutions.Wpf.DragDrop;
 using GongSolutions.Wpf.DragDrop.Utilities;
 using System.Globalization;
+using System.Windows.Input;
+
 
 namespace WpfDocCompiler
 {
@@ -33,17 +35,11 @@ namespace WpfDocCompiler
             filesListBox.ItemsSource = SelectedFiles;
             DataContext = this;
 
-            // Armazenar o conteúdo editorial
+            // Store the editorial content
             this.editorialContent = editorialContent;
 
-            // Atualizar a barra de status para refletir o fato de que o editorial foi concluído
+            // Update status to reflect that the editorial is completed
             UpdateStatus("Editorial concluído. Selecione os arquivos para compilar.");
-
-            // Configurar o manipulador de arrastar e soltar
-            GongSolutions.Wpf.DragDrop.DragDrop.SetDropHandler(filesListBox, this);
-
-            // Manipular o fechamento da janela principal
-            this.Closing += MainWindow_Closing;
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -93,6 +89,8 @@ namespace WpfDocCompiler
                     UpdateStatus("Item reordered");
                 }
             }
+
+
             // Handle files dropped from Windows Explorer
             else if (dropInfo.Data is IDataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
             {
@@ -274,6 +272,35 @@ namespace WpfDocCompiler
         // Apenas usam o campo editorialContent em vez de chamar GetEditorialContent()
 
         // Método para criar um documento com o editorial e artigos
+
+        private void AddAuthorList(Body body, List<Author> authors)
+        {
+            Paragraph titleParagraph = new Paragraph(new Run(new Text("Author List")));
+            body.AppendChild(titleParagraph);
+
+            foreach (var author in authors)
+            {
+                Paragraph authorParagraph = new Paragraph(new Run(new Text($"{author.Nome} - {author.Email}")));
+                body.AppendChild(authorParagraph);
+            }
+
+            body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page }))); // Page break after author list
+        }
+
+        private void AddIndex(Body body, IEnumerable<string> articles)
+        {
+            Paragraph titleParagraph = new Paragraph(new Run(new Text("Index")));
+            body.AppendChild(titleParagraph);
+
+            foreach (var article in articles)
+            {
+                Paragraph indexParagraph = new Paragraph(new Run(new Text(Path.GetFileName(article))));
+                body.AppendChild(indexParagraph);
+            }
+
+            body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page }))); // Page break after index
+        }
+
         private void CreateDocumentWithEditorialAndArticles(string outputPath, string editorialContent, IEnumerable<string> articles)
         {
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
@@ -281,6 +308,13 @@ namespace WpfDocCompiler
                 MainDocumentPart mainPart = wordDoc.AddMainDocumentPart();
                 mainPart.Document = new Document(new Body());
                 Body body = mainPart.Document.Body;
+
+                // Add Author List
+                var authors = ExtractAuthorsFromDocs(articles.ToList());
+                AddAuthorList(body, authors);
+
+                // Add Index
+                AddIndex(body, articles);
 
                 // Add Editorial
                 if (!string.IsNullOrWhiteSpace(editorialContent))

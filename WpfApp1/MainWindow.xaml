@@ -12,7 +12,7 @@
     <Window.Resources>
         <!-- Add converter resources directly in XAML -->
         <local:FileNameConverter x:Key="FileNameConverter"/>
-        <local:FileIconConverter x:Key="FileIconConverter"/>
+        <local:FileIconConverter x:Key="FileIconConverter"/>    
 
         <SolidColorBrush x:Key="PrimaryBlue" Color="#FF005BBB" />
         <SolidColorBrush x:Key="AccentYellow" Color="#FFFFC400" />

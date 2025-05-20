@@ -1,15 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Window x:Class="WpfDocCompiler.EditorialForm"
+﻿<Window x:Class="WpfDocCompiler.EditorialForm"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Editorial" Height="500" Width="700" 
-        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
-    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-        <Button x:Name="btnAddFiles" Content="Adicionar Ficheiro" Click="AddFiles_Click" />
-        <Button x:Name="btnRemoveFile" Content="Remover Ficheiro" Click="RemoveFile_Click" />
-        <Button x:Name="btnMoveUp" Content="Mover para Cima" Click="MoveUp_Click" />
-        <Button x:Name="btnMoveDown" Content="Mover para Baixo" Click="MoveDown_Click" />
-        <Button x:Name="btnCompile" Content="Compilar" FontWeight="Bold" Click="Compile_Click" />
-        <Button x:Name="btnUploadDocx" Content="Upload DOCX" Click="UploadDocx_Click" />
-    </StackPanel>                       
+        Title="Editorial" Height="300" Width="400" ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen">
+    
 </Window>

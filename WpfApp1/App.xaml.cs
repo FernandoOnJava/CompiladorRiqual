@@ -16,7 +16,7 @@ namespace WpfApp1
         {
             base.OnStartup(e);
 
-            // Iniciar com EditorialForm em vez de MainWindow
+            // Start with EditorialForm instead of MainWindow
             EditorialForm editorialForm = new EditorialForm();
             editorialForm.Show();
         }
