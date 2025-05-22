@@ -1,23 +1,49 @@
 ﻿using System;
-using System.IO;
 using System.Windows;
-using Microsoft.Win32;
-using DocumentFormat.OpenXml.Packaging;
-using Microsoft.Win32;
-using Newtonsoft.Json;
-using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using GongSolutions.Wpf.DragDrop;
-using GongSolutions.Wpf.DragDrop.Utilities;
-using System.Globalization;
-using System.Windows.Input;
 
 namespace WpfDocCompiler
 {
     public partial class EditorialForm : Window
     {
-        
+        public string EditorialContent { get; private set; }
+
+        public EditorialForm()
+        {
+            InitializeComponent();
+        }
+
+        // Set content if editing an existing editorial
+        public void SetContent(string content)
+        {
+            if (!string.IsNullOrEmpty(content))
+            {
+                editorialTextBox.Text = content;
+            }
+        }
+
+        private void ContinueButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Save the editorial content
+            EditorialContent = editorialTextBox.Text;
+
+            // Open the MainWindow with the editorial content
+            MainWindow mainWindow = new MainWindow(EditorialContent);
+            mainWindow.Show();
+
+            // Set DialogResult to true to indicate successful completion
+            DialogResult = true;
+
+            // Close this window
+            Close();
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Set DialogResult to false to indicate cancellation
+            DialogResult = false;
+
+            // Close this window
+            Close();
+        }
     }
 }
