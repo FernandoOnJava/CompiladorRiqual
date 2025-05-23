@@ -9,9 +9,9 @@ namespace WpfDocCompiler
         {
             base.OnStartup(e);
 
-            // Start with the EditorialForm
-            EditorialForm editorialForm = new EditorialForm();
-            editorialForm.Show();
+            // Start directly with MainWindow
+            MainWindow mainWindow = new MainWindow();
+            mainWindow.Show();
         }
     }
 }

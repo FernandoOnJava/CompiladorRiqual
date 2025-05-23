@@ -6,75 +6,42 @@
         xmlns:local="clr-namespace:WpfDocCompiler"
         xmlns:dd="clr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop"
         mc:Ignorable="d"
-        Title="Compilador de Artigos" Height="550" Width="650"
-        Background="White">
-    <!-- Resources for modern blue and yellow theme -->
-    <Window.Resources>
-        <!-- Add converter resources directly in XAML -->
-        <local:FileNameConverter x:Key="FileNameConverter"/>
-        <local:FileIconConverter x:Key="FileIconConverter"/>    
+        Title="Document Compiler - Articles with TOC" Height="600" Width="800"
+        Background="#F5F5F5">
 
-        <SolidColorBrush x:Key="PrimaryBlue" Color="#FF005BBB" />
-        <SolidColorBrush x:Key="AccentYellow" Color="#FFFFC400" />
+    <Window.Resources>
+        <local:FileNameConverter x:Key="FileNameConverter"/>
+        <local:FileIconConverter x:Key="FileIconConverter"/>
+
+        <!-- Modern Style -->
+        <SolidColorBrush x:Key="PrimaryColor" Color="#2196F3" />
+        <SolidColorBrush x:Key="AccentColor" Color="#FFC107" />
+        <SolidColorBrush x:Key="DarkColor" Color="#1976D2" />
+
         <Style TargetType="Button">
             <Setter Property="Margin" Value="5" />
-            <Setter Property="Padding" Value="10,5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Background" Value="{StaticResource PrimaryBlue}" />
-            <Setter Property="BorderBrush" Value="{StaticResource AccentYellow}" />
-            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Background" Value="{StaticResource PrimaryColor}" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
+                                CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{StaticResource AccentYellow}" />
-                                <Setter Property="Foreground" Value="{StaticResource PrimaryBlue}" />
+                                <Setter Property="Background" Value="{StaticResource DarkColor}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Opacity" Value="0.8" />
                             </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style TargetType="ListBox">
-            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBlue}" />
-            <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="Background" Value="WhiteSmoke" />
-            <Setter Property="Foreground" Value="Black" />
-            <Setter Property="Padding" Value="5" />
-        </Style>
-        <Style TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="8" />
-            <Setter Property="Margin" Value="2" />
-            <Setter Property="Background" Value="LightGray" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Bd"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="Transparent"
-                                BorderThickness="1"
-                                CornerRadius="4">
-                            <ContentPresenter Margin="4" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentYellow}" />
-                                <Setter Property="Foreground" Value="White" />
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PrimaryBlue}" />
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="LightGray" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -83,50 +50,97 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="15">
+    <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Reorderable list of files -->
-        <ListBox Grid.Row="0" Name="filesListBox"
-                 dd:DragDrop.IsDragSource="True"
-                 dd:DragDrop.IsDropTarget="True"
-                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Image Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0"
-                               Source="{Binding Converter={StaticResource FileIconConverter}}" />
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}" 
-                                       FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding}" FontSize="10" Foreground="Gray"
-                                       TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource PrimaryColor}" Padding="20">
+            <StackPanel>
+                <TextBlock Text="Document Compiler" FontSize="24" FontWeight="Bold" Foreground="White" />
+                <TextBlock Text="Create professional documents with author list, table of contents, editorial and articles" 
+                           FontSize="14" Foreground="White" Opacity="0.9" />
+            </StackPanel>
+        </Border>
 
-        <!-- Buttons for file management -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Name="btnAddFiles" Content="Adicionar Ficheiro" Click="AddFiles_Click" />
-            <Button Name="btnRemoveFile" Content="Remover Ficheiro" Click="RemoveFile_Click" />
-            <Button Name="btnMoveUp" Content="Mover para Cima" Click="MoveUp_Click" />
-            <Button Name="btnMoveDown" Content="Mover para Baixo" Click="MoveDown_Click" />
-            <Button Name="btnCompile" Content="Compilar" FontWeight="Bold" Click="Compile_Click" />
-        </StackPanel>
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1" Margin="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-        <!-- Status bar -->
-        <Border Grid.Row="2" Background="{StaticResource PrimaryBlue}" CornerRadius="4" Padding="8" Margin="0,10,0,0">
-            <TextBlock Name="statusTextBlock" Text="Pronto" Foreground="White" FontWeight="SemiBold"/>
+            <!-- Article List -->
+            <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="15">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Articles (drag to reorder)" FontWeight="SemiBold" 
+                               FontSize="16" Margin="0,0,0,10" />
+
+                    <ListBox Grid.Row="1" Name="filesListBox"
+                             dd:DragDrop.IsDragSource="True"
+                             dd:DragDrop.IsDropTarget="True"
+                             BorderThickness="1" BorderBrush="#E0E0E0"
+                             Background="White">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#F8F8F8" CornerRadius="4" Padding="10" Margin="0,2">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="📄" FontSize="20" Margin="0,0,10,0" />
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}" 
+                                                       FontWeight="Medium" />
+                                            <TextBlock Text="{Binding}" FontSize="11" Foreground="Gray"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Control Buttons -->
+            <StackPanel Grid.Column="1" Margin="15,40,0,0" Width="180">
+                <Button Name="btnAddFiles" Content="➕ Add Articles" Click="AddFiles_Click" />
+                <Button Name="btnRemoveFile" Content="➖ Remove Selected" Click="RemoveFile_Click" />
+                <Button Name="btnMoveUp" Content="⬆ Move Up" Click="MoveUp_Click" />
+                <Button Name="btnMoveDown" Content="⬇ Move Down" Click="MoveDown_Click" />
+
+                <Separator Margin="0,20" />
+
+                <Button Name="btnAddEditorial" Content="📝 Select Editorial" 
+                        Background="{StaticResource AccentColor}" Click="AddEditorial_Click" />
+
+                <Separator Margin="0,20" />
+
+                <Button Name="btnCompile" Content="📦 Compile Document" 
+                        FontSize="16" Padding="15,10" IsEnabled="False"
+                        Background="#4CAF50" Click="Compile_Click" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Editorial Status -->
+        <Border Grid.Row="2" Margin="20,0,20,10" Background="#E3F2FD" CornerRadius="4" Padding="10">
+            <TextBlock Name="editorialStatus" Text="No editorial selected" />
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" Background="#333" Padding="10">
+            <TextBlock Name="statusTextBlock" Text="Ready" Foreground="White" />
         </Border>
     </Grid>
 </Window>
