@@ -3,45 +3,128 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:dd="urn:gong-wpf-dragdrop"
         xmlns:local="clr-namespace:WpfDocCompiler"
-        xmlns:dd="clr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop"
         mc:Ignorable="d"
-        Title="Document Compiler - Articles with TOC" Height="600" Width="800"
-        Background="#F5F5F5">
+        Title="TMQ Document Compiler - Sistema Unificado" Height="800" Width="1200"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F7FA">
 
     <Window.Resources>
         <local:FileNameConverter x:Key="FileNameConverter"/>
         <local:FileIconConverter x:Key="FileIconConverter"/>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
 
-        <!-- Modern Style -->
-        <SolidColorBrush x:Key="PrimaryColor" Color="#2196F3" />
-        <SolidColorBrush x:Key="AccentColor" Color="#FFC107" />
-        <SolidColorBrush x:Key="DarkColor" Color="#1976D2" />
-
-        <Style TargetType="Button">
-            <Setter Property="Margin" Value="5" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="Background" Value="{StaticResource PrimaryColor}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Cursor" Value="Hand" />
+        <!-- Modern Button Style -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2563EB"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#94A3B8"/>
+                    <Setter Property="Foreground" Value="#E2E8F0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="#64748B"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#475569"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#334155"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Success Button Style -->
+        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="#10B981"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#059669"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#047857"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Small Icon Button Style -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E2E8F0"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#CBD5E1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- TextBox Style -->
+        <Style x:Key="ModernTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{StaticResource DarkColor}" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Opacity" Value="0.8" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="LightGray" />
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="#3B82F6"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -52,95 +135,347 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="{StaticResource PrimaryColor}" Padding="20">
-            <StackPanel>
-                <TextBlock Text="Document Compiler" FontSize="24" FontWeight="Bold" Foreground="White" />
-                <TextBlock Text="Create professional documents with author list, table of contents, editorial and articles" 
-                           FontSize="14" Foreground="White" Opacity="0.9" />
-            </StackPanel>
+        <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid Margin="30,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="TMQ Document Compiler" FontSize="28" FontWeight="Bold" Foreground="#1E293B"/>
+                    <TextBlock Text="Sistema unificado de criação e compilação de documentos" FontSize="16" Foreground="#64748B" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- Main Content Area -->
-        <Grid Grid.Row="1" Margin="20">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <!-- Main Content -->
+        <TabControl Grid.Row="1" Margin="30,20" BorderThickness="0" Background="Transparent">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="Border" Background="Transparent" Margin="0,0,10,0" Padding="20,10"
+                                        CornerRadius="6,6,0,0">
+                                    <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" 
+                                                    HorizontalAlignment="Center" ContentSource="Header"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="White"/>
+                                        <Setter Property="Foreground" Value="#1E293B"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="False">
+                                        <Setter Property="Foreground" Value="#64748B"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
 
-            <!-- Article List -->
-            <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="15">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+            <!-- Tab 1: Cover Page Configuration -->
+            <TabItem Header="Configurar Capa">
+                <Border Background="White" CornerRadius="8" Margin="0,10,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid Margin="30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="300"/>
+                            </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Articles (drag to reorder)" FontWeight="SemiBold" 
-                               FontSize="16" Margin="0,0,0,10" />
+                            <!-- Left Side - Form -->
+                            <StackPanel Grid.Column="0" Margin="0,0,30,0">
+                                <!-- Document Title -->
+                                <TextBlock Text="Título do Documento" FontSize="16" FontWeight="SemiBold" 
+                                         Foreground="#1E293B" Margin="0,0,0,10"/>
+                                <TextBox Text="{Binding DocumentTitle}" Style="{StaticResource ModernTextBox}" 
+                                       Margin="0,0,0,20"/>
 
-                    <ListBox Grid.Row="1" Name="filesListBox"
-                             dd:DragDrop.IsDragSource="True"
-                             dd:DragDrop.IsDropTarget="True"
-                             BorderThickness="1" BorderBrush="#E0E0E0"
-                             Background="White">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#F8F8F8" CornerRadius="4" Padding="10" Margin="0,2">
+                                <!-- Document Subtitle -->
+                                <TextBlock Text="Subtítulo" FontSize="16" FontWeight="SemiBold" 
+                                         Foreground="#1E293B" Margin="0,0,0,10"/>
+                                <TextBox Text="{Binding DocumentSubtitle}" Style="{StaticResource ModernTextBox}" 
+                                       Margin="0,0,0,20"/>
+
+                                <!-- Logo Section -->
+                                <TextBlock Text="Logo" FontSize="16" FontWeight="SemiBold" 
+                                         Foreground="#1E293B" Margin="0,0,0,10"/>
+                                <Border BorderBrush="#E2E8F0" BorderThickness="2" CornerRadius="8" 
+                                      Height="150" Background="#F8FAFC" Margin="0,0,0,10">
                                     <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="📄" FontSize="20" Margin="0,0,10,0" />
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}" 
-                                                       FontWeight="Medium" />
-                                            <TextBlock Text="{Binding}" FontSize="11" Foreground="Gray"
-                                                       TextTrimming="CharacterEllipsis" />
+                                        <StackPanel x:Name="logoPlaceholder" VerticalAlignment="Center" 
+                                                  HorizontalAlignment="Center">
+                                            <TextBlock Text="📷" FontSize="48" Foreground="#CBD5E1" 
+                                                     HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Clique para adicionar logo" FontSize="14" 
+                                                     Foreground="#94A3B8" Margin="0,10,0,0"/>
                                         </StackPanel>
+                                        <Image x:Name="logoPreview" Stretch="Uniform" Margin="10" 
+                                             Visibility="Collapsed"/>
                                     </Grid>
                                 </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
-            </Border>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                                    <Button Click="AddLogo_Click" Style="{StaticResource SecondaryButton}" 
+                                          Margin="0,0,10,0">
+                                        <TextBlock Text="Selecionar Logo"/>
+                                    </Button>
+                                    <Button Click="RemoveLogo_Click" Style="{StaticResource IconButton}">
+                                        <TextBlock Text="×" FontSize="20" Foreground="#EF4444"/>
+                                    </Button>
+                                </StackPanel>
 
-            <!-- Control Buttons -->
-            <StackPanel Grid.Column="1" Margin="15,40,0,0" Width="180">
-                <Button Name="btnAddFiles" Content="➕ Add Articles" Click="AddFiles_Click" />
-                <Button Name="btnRemoveFile" Content="➖ Remove Selected" Click="RemoveFile_Click" />
-                <Button Name="btnMoveUp" Content="⬆ Move Up" Click="MoveUp_Click" />
-                <Button Name="btnMoveDown" Content="⬇ Move Down" Click="MoveDown_Click" />
+                                <!-- Authors Section -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Autores da Capa" FontSize="16" FontWeight="SemiBold" 
+                                             Foreground="#1E293B"/>
+                                    <Button Grid.Column="1" Click="AddAuthor_Click" Style="{StaticResource ModernButton}">
+                                        <TextBlock Text="+ Adicionar Autor"/>
+                                    </Button>
+                                </Grid>
 
-                <Separator Margin="0,20" />
+                                <DataGrid x:Name="authorsDataGrid" AutoGenerateColumns="False" 
+                                        CanUserAddRows="False" BorderThickness="1" BorderBrush="#E2E8F0"
+                                        GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                                        Background="White" RowBackground="White" 
+                                        AlternatingRowBackground="#FAFBFC" MaxHeight="300">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="2*"/>
+                                        <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="2*"/>
+                                        <DataGridTextColumn Header="Instituição" Binding="{Binding Escola}" Width="2*"/>
+                                        <DataGridTemplateColumn Header="" Width="50">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Click="RemoveAuthor_Click" Style="{StaticResource IconButton}"
+                                                          Width="30" Height="30">
+                                                        <TextBlock Text="×" FontSize="18" Foreground="#EF4444"/>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
 
-                <Button Name="btnAddEditorial" Content="📝 Select Editorial" 
-                        Background="{StaticResource AccentColor}" Click="AddEditorial_Click" />
+                            <!-- Right Side - Preview -->
+                            <Border Grid.Column="1" Background="#F8FAFC" CornerRadius="8" Padding="20">
+                                <StackPanel>
+                                    <TextBlock Text="Pré-visualização" FontSize="16" FontWeight="SemiBold" 
+                                             Foreground="#1E293B" Margin="0,0,0,20"/>
+                                    <Border Background="White" CornerRadius="4" Padding="20" MinHeight="400">
+                                        <Border.Effect>
+                                            <DropShadowEffect ShadowDepth="0" BlurRadius="10" Opacity="0.1"/>
+                                        </Border.Effect>
+                                        <StackPanel>
+                                            <Rectangle Height="60" Width="60" Fill="#E2E8F0" Margin="0,0,0,20"
+                                                     HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DocumentTitle}" FontSize="24" FontWeight="Bold"
+                                                     TextAlignment="Center" Margin="0,0,0,10"/>
+                                            <TextBlock Text="{Binding DocumentSubtitle}" FontSize="14" 
+                                                     TextAlignment="Center" Foreground="#64748B"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+            </TabItem>
 
-                <Separator Margin="0,20" />
+            <!-- Tab 2: Articles and Compilation -->
+            <TabItem Header="Artigos e Compilação">
+                <Border Background="White" CornerRadius="8" Margin="0,10,0,0">
+                    <Grid Margin="30">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
 
-                <Button Name="btnCompile" Content="📦 Compile Document" 
-                        FontSize="16" Padding="15,10" IsEnabled="False"
-                        Background="#4CAF50" Click="Compile_Click" />
-            </StackPanel>
+                        <!-- Left Panel - Files List -->
+                        <Border Background="#F8FAFC" CornerRadius="8" Margin="0,0,15,0" Padding="20">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- List Header -->
+                                <Grid Grid.Row="0" Margin="0,0,0,20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="Artigos" FontSize="18" FontWeight="SemiBold" Foreground="#1E293B"/>
+
+                                    <Button Grid.Column="1" Click="AddFiles_Click" Style="{StaticResource ModernButton}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="+" FontSize="18" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Adicionar"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <!-- Files ListBox -->
+                                <ListBox Grid.Row="1" x:Name="filesListBox" 
+                                         dd:DragDrop.IsDragSource="True"
+                                         dd:DragDrop.IsDropTarget="True"
+                                         dd:DragDrop.DropHandler="{Binding}"
+                                         BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         Background="Transparent">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="White" CornerRadius="6" Margin="0,0,0,8" 
+                                                    Padding="15,12" Cursor="Hand">
+                                                <Border.Effect>
+                                                    <DropShadowEffect ShadowDepth="0" BlurRadius="5" Opacity="0.08"/>
+                                                </Border.Effect>
+
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Grid.Column="0" Text="📄" FontSize="20" Margin="0,0,12,0"/>
+
+                                                    <TextBlock Grid.Column="1" 
+                                                               Text="{Binding Converter={StaticResource FileNameConverter}}"
+                                                               VerticalAlignment="Center"
+                                                               FontSize="14"
+                                                               Foreground="#334155"/>
+
+                                                    <TextBlock Grid.Column="2" Text="⋮⋮" FontSize="16" Foreground="#94A3B8"
+                                                               VerticalAlignment="Center" Margin="10,0,0,0"
+                                                               ToolTip="Arraste para reordenar"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <!-- List Actions -->
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,20,0,0" 
+                                          HorizontalAlignment="Right">
+                                    <Button Click="MoveUp_Click" Style="{StaticResource IconButton}" 
+                                          Margin="0,0,5,0" ToolTip="Mover para cima">
+                                        <TextBlock Text="↑" FontSize="18" Foreground="#64748B"/>
+                                    </Button>
+                                    <Button Click="MoveDown_Click" Style="{StaticResource IconButton}" 
+                                          Margin="0,0,10,0" ToolTip="Mover para baixo">
+                                        <TextBlock Text="↓" FontSize="18" Foreground="#64748B"/>
+                                    </Button>
+                                    <Button Click="RemoveFile_Click" Style="{StaticResource IconButton}" 
+                                          ToolTip="Remover">
+                                        <TextBlock Text="×" FontSize="20" Foreground="#EF4444"/>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Right Panel - Required Files -->
+                        <StackPanel Grid.Column="1">
+                            <!-- Editorial Section -->
+                            <Border Background="#F8FAFC" CornerRadius="8" Margin="0,0,0,15" Padding="20">
+                                <StackPanel>
+                                    <TextBlock Text="Editorial" FontSize="16" FontWeight="SemiBold" 
+                                             Foreground="#1E293B" Margin="0,0,0,10"/>
+                                    <TextBlock x:Name="editorialStatus" Text="Nenhum ficheiro selecionado" 
+                                               FontSize="13" Foreground="#94A3B8" Margin="0,0,0,10"/>
+                                    <Button Click="AddEditorial_Click" Style="{StaticResource SecondaryButton}" 
+                                          HorizontalAlignment="Stretch">
+                                        <TextBlock Text="Selecionar Editorial"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Conselho Editorial Section -->
+                            <Border Background="#F8FAFC" CornerRadius="8" Padding="20">
+                                <StackPanel>
+                                    <TextBlock Text="Conselho Editorial" FontSize="16" FontWeight="SemiBold" 
+                                             Foreground="#1E293B" Margin="0,0,0,10"/>
+                                    <TextBlock x:Name="conselhoStatus" Text="Nenhum ficheiro selecionado" 
+                                               FontSize="13" Foreground="#94A3B8" Margin="0,0,0,10"/>
+                                    <Button Click="AddConselho_Click" Style="{StaticResource SecondaryButton}" 
+                                          HorizontalAlignment="Stretch">
+                                        <TextBlock Text="Selecionar Conselho"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Document Structure Info -->
+                            <Border Background="#EFF6FF" CornerRadius="8" Padding="20" Margin="0,20,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="ℹ️ Estrutura do Documento" FontSize="14" FontWeight="SemiBold" 
+                                             Foreground="#1E40AF" Margin="0,0,0,10"/>
+                                    <TextBlock FontSize="12" Foreground="#1E40AF" TextWrapping="Wrap">
+                                        <TextBlock.Text>
+                                            1. Capa (configurada no tab anterior)
+2. Página em Branco
+3. Conselho Editorial
+4. Lista de Autores
+5. Índice
+6. Editorial
+7. Artigos (ordem definida acima)
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Compile Button -->
+                            <Button x:Name="btnCompile" Click="Compile_Click" Style="{StaticResource SuccessButton}" 
+                                    Margin="0,30,0,0" HorizontalAlignment="Stretch" IsEnabled="False">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚡" FontSize="18" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Compilar Documento"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </TabItem>
+        </TabControl>
+
+        <!-- Progress Bar -->
+        <Grid Grid.Row="2" Visibility="{Binding IsCompiling, Converter={StaticResource BoolToVisibilityConverter}}"
+              Background="White" Height="60">
+            <Grid.Effect>
+                <DropShadowEffect ShadowDepth="0" BlurRadius="20" Opacity="0.1" Direction="270"/>
+            </Grid.Effect>
+
+            <Grid Margin="30,15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="A compilar documento..." FontSize="14" Foreground="#64748B" Margin="0,0,0,8"/>
+
+                <ProgressBar Grid.Row="1" Height="8" Value="{Binding ProgressValue}" Maximum="100"
+                           Foreground="#3B82F6" Background="#E2E8F0"/>
+            </Grid>
         </Grid>
 
-        <!-- Editorial Status -->
-        <Border Grid.Row="2" Margin="20,0,20,10" Background="#E3F2FD" CornerRadius="4" Padding="10">
-            <TextBlock Name="editorialStatus" Text="No editorial selected" />
-        </Border>
-
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="#333" Padding="10">
-            <TextBlock Name="statusTextBlock" Text="Ready" Foreground="White" />
+        <Border Grid.Row="3" Background="#1E293B" Padding="30,15">
+            <TextBlock x:Name="statusTextBlock" Text="Pronto" Foreground="White" FontSize="13"/>
         </Border>
     </Grid>
 </Window>

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Compilador de Artigos - WPF
 
 Esta aplicação WPF permite compilar múltiplos artigos em Word (.docx) ou texto (.txt) em um único documento formatado, incluindo lista de autores, índice automático, editorial e todos os artigos organizados.
